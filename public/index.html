@@ -1,0 +1,130 @@
+<html>
+  <head>
+    <script>
+      window.app = {};
+      window.KEY = '';
+      window.BOARD = '';
+    </script>
+    <link rel="stylesheet" href="styles.css" type="text/css" media="screen" title="no title" charset="utf-8">
+    <script src="javascripts/jquery-2.1.1.min.js" type="text/javascript" charset="utf-8"></script>
+    <script src="http://code.jquery.com/jquery-1.7.1.min.js"></script>
+    <script>
+      document.write('<script src="https://api.trello.com/1/client.js?key=' + KEY + '"></scr' + 'ipt>');
+    </script>
+
+  </head>
+
+  <body>
+
+    <main>
+      <header></header>
+      <ul id="lists">
+      </ul>
+    </main>
+
+    <section class="sidebar">
+    </section>
+
+    <script>
+      var authenticationSuccess = function() {
+        console.log("Successful authentication", 'args', Trello.token());
+
+        // Get board
+        $.ajax({
+          type: 'get',
+          url: 'https://trello.com/1/boards/' + BOARD,
+          data: {
+            token: Trello.token(),
+            key: KEY,
+          },
+          success: function(resp) {
+            app.board = resp;
+            document.getElementsByTagName('header')[0].innerText = app.board.name;
+          },
+          error: function(resp) {
+            console.log(resp);
+          },
+        });
+
+        // Get lists
+        $.ajax({
+          type: 'get',
+          url: 'https://trello.com/1/boards/' + BOARD + '/lists',
+          data: {
+            token: Trello.token(),
+            key: KEY,
+          },
+          success: function(resp) {
+            app.lists = resp;
+            app.listOrder = {};
+            var listHTML = app.lists.map(function(list, i) {
+              app.listOrder[list.id] = i;
+              return list.name;
+            });
+            document.getElementById('lists').innerHTML = '<li class="wrapper"><div class="list"><h2>'
+              + listHTML.join('</h2><ul class="cards"></ul>Add a card...</div></li><li class="wrapper"><div class="list"><h2>')
+              + '</h2><ul class="cards"></ul></div></li>';
+          },
+          error: function(resp) {
+            console.log(resp);
+          },
+        });
+
+        // Get cards
+        $.ajax({
+          type: 'get',
+          url: 'https://trello.com/1/boards/' + BOARD + '/cards',
+          data: {
+            token: Trello.token(),
+            key: KEY,
+          },
+          // TODO: make sure everything goes in the right order
+          success: function(resp) {
+            var lists = document.getElementsByClassName('list');
+
+            app.cards = resp;
+            app.cardsInLists = [];
+            app.cards.forEach(function(card) {
+              var listIdx = app.listOrder[card.idList];
+              app.cardsInLists[listIdx] = app.cardsInLists[listIdx] || [];
+              app.cardsInLists[listIdx].push(card);
+            });
+
+            app.cardsInLists.forEach(function(cards, i) {
+              cards.sort(function(card1, card2) { return card1.pos - card2.pos; });
+              var domList = lists[i].childNodes[1];
+              domList.innerHTML += '<li>' + cards.map(function(card) {
+                return card.name;
+              }).join('</li><li>') + '</li>';
+            });
+
+            [].forEach.call(lists, function(domList, i) {
+              var cardCount = document.createElement('h3');
+              cardCount.innerText = app.cardsInLists[i].length + ' cards';
+              var spaceNode = document.createTextNode(' ');
+              domList.insertBefore(cardCount, domList.childNodes[1]);
+              domList.insertBefore(spaceNode, domList.childNodes[1]);
+            });
+          },
+          error: function(resp) {
+            console.log(resp);
+          },
+        });
+
+      };
+      var authenticationFailure = function() { console.log("Failed authentication"); };
+      Trello.authorize({
+        type: "popup",
+        name: "Yo yo yo yo yoyoyo yo yo yo",
+        scope: {
+          read: true,
+          write: true },
+        expiration: "never",
+        success: authenticationSuccess,
+        error: authenticationFailure
+      });
+    </script>
+
+  </body>
+
+</html>

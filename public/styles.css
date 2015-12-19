@@ -1,0 +1,96 @@
+html, body, ul, li, input, button, div, main, footer, h2, h3 {
+  background: transparent;
+  font: inherit;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+  display: block;
+}
+
+html {
+  height: 100%;
+}
+
+body {
+  font-family: 'Helvetica Neue', Arial, Helvetica, sans-serif;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+.sidebar {
+  background-color: #F5F5F5;
+  position: absolute;
+  right: 0;
+  /*width: 200px;*/
+  padding: 10px;
+  height: 100%;
+  font-size: 15px;
+}
+
+main {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  overflow-y: hidden;
+  overflow-x: scroll;
+  background-color: rgb(81,152,57);
+  height: 100%;
+  padding: 0 5px;
+  white-space: nowrap;
+  padding-right: 200px;
+}
+
+header {
+  font-weight: bold;
+  color: white;
+  font-size: 18px;
+  padding: 8px;
+}
+
+.wrapper {
+  height: 100%;
+  display: inline-block;
+  vertical-align: top;
+}
+
+.list {
+  width: 270px;
+  border-radius: 3px;
+  background-color: rgb(222,224,226);
+  margin: 5px;
+  color: rgb(77,77,77);
+  font-weight: bold;
+  padding: 8px 10px;
+}
+
+.list ul {
+  max-height: 80%;
+  overflow-y: scroll;
+}
+
+.list h2 {
+  padding-bottom: 8px;
+  font-size: 15px;
+  display: inline-block;
+}
+
+.list h3 {
+  display: inline-block;
+  color: rgb(140,140,140);
+  font-weight: normal;
+  font-size: 14px;
+}
+
+.cards li {
+  padding: 6px 8px 4px;
+  border-radius: 3px;
+  background-color: white;
+  font-size: 14px;
+  font-weight: normal;
+  margin-bottom: 6px;
+  white-space: normal;
+}
