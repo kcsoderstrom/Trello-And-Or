@@ -21,12 +21,13 @@ body {
 
 .sidebar {
   background-color: #F5F5F5;
+  color: rgb(77,77,77);
   position: absolute;
   right: 0;
-  /*width: 200px;*/
   padding: 10px;
   height: 100%;
   font-size: 15px;
+  width: 200px;
 }
 
 main {
@@ -63,7 +64,6 @@ header {
   background-color: rgb(222,224,226);
   margin: 5px;
   color: rgb(77,77,77);
-  font-weight: bold;
   padding: 8px 10px;
 }
 
@@ -72,10 +72,11 @@ header {
   overflow-y: scroll;
 }
 
-.list h2 {
+h2 {
   padding-bottom: 8px;
   font-size: 15px;
   display: inline-block;
+  font-weight: bold;
 }
 
 .list h3 {
@@ -93,4 +94,33 @@ header {
   font-weight: normal;
   margin-bottom: 6px;
   white-space: normal;
+}
+
+.member-initials {
+  width: 30px;
+  height: 30px;
+  font-size: 12px;
+  line-height: 30px;
+  display: block;
+  background-color: rgb(214, 218, 220);
+  text-align: center;
+}
+
+.sidebar li {
+  display: block;
+  float: left;
+  margin-bottom: 4px;
+  margin-right: 4px;
+}
+
+label {
+  display: block;
+  clear: both;
+}
+
+input {
+  background-color: white;
+  outline: none;
+  padding: 10px;
+  border-radius: 3px;
 }

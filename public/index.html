@@ -8,6 +8,8 @@
     <link rel="stylesheet" href="styles.css" type="text/css" media="screen" title="no title" charset="utf-8">
     <script src="javascripts/jquery-2.1.1.min.js" type="text/javascript" charset="utf-8"></script>
     <script src="http://code.jquery.com/jquery-1.7.1.min.js"></script>
+    <script src="http://underscorejs.org/underscore.js"></script>
+    <script src="http://backbonejs.org/backbone.js"></script>
     <script>
       document.write('<script src="https://api.trello.com/1/client.js?key=' + KEY + '"></scr' + 'ipt>');
     </script>
@@ -23,99 +25,192 @@
     </main>
 
     <section class="sidebar">
+      <h2>Menu</h2>
+      <ul></ul>
+      <label>
+        Filter
+        <input type="text">
+      </label>
     </section>
 
     <script>
-      var authenticationSuccess = function() {
-        console.log("Successful authentication", 'args', Trello.token());
+      var Board = Backbone.Model.extend({
+        url: 'https://trello.com/1/boards/' + BOARD,
+      });
+      var Card = Backbone.Model.extend();
+      var CardCollection = Backbone.Collection.extend({
+        model: Card,
+        url: 'https://trello.com/1/boards/' + BOARD + '/cards',
+      });
+      var List = Backbone.Model.extend({});
+      var ListCollection = Backbone.Collection.extend({
+        model: List,
+        url: 'https://trello.com/1/boards/' + BOARD + '/lists',
+        addCards: function() {
+          var self = this;
+          app.lists.each(function(list) {
+            if(list.cards) return;
 
-        // Get board
-        $.ajax({
-          type: 'get',
-          url: 'https://trello.com/1/boards/' + BOARD,
-          data: {
-            token: Trello.token(),
-            key: KEY,
-          },
-          success: function(resp) {
-            app.board = resp;
-            document.getElementsByTagName('header')[0].innerText = app.board.name;
-          },
-          error: function(resp) {
-            console.log(resp);
-          },
+            var cards = app.cards.filter(function (card) {
+              return card.get('idList') === list.id;
+            });
+            list.cards = new CardCollection(cards);
+            list.trigger('addCards');
+          });
+        }
+      });
+      var Label = Backbone.Model.extend({});
+      var LabelCollection = Backbone.Collection.extend({
+        model: Label,
+        url: 'https://trello.com/1/boards/' + BOARD + '/labels',
+      });
+      var Member = Backbone.Model.extend();
+      var MemberCollection = Backbone.Collection.extend({
+        model: Member,
+        url: 'https://trello.com/1/boards/' + BOARD + '/members?fields[]=avatarHash&fields[]=username&fields[]=fullName&fields[]=initials',
+      });
+
+      app.board = new Board();
+      app.members = new MemberCollection();
+      app.labels = new LabelCollection();
+      app.lists = new ListCollection();
+      app.cards = new CardCollection;
+
+      var ListView = Backbone.View.extend({
+        tagName: 'ul',
+        className: 'wrapper',
+        render: function() {
+          var $el = this.$el;
+          $div = $el.find('.list');
+          if(!$div.length) {
+            $el.append('<div class="list">');
+            $div = $el.find('.list');
+            $div.append('<h2>' + this.model.get('name') + '</h2>');
+          }
+
+          if(this.model.cards) {
+            var view = new CardsView({collection: this.model.cards});
+            $div.append(view.render().$el);
+          }
+          return this;
+        },
+        initialize: function() {
+          this.listenTo(this.model, 'addCards', this.render);
+        },
+      });
+      var CardsView = Backbone.View.extend({
+        tagName: 'ul',
+        className: 'cards',
+        render: function() {
+          var $el = this.$el;
+          this.collection.each(function(card) {
+            var view = new CardView({model: card});
+            $el.append(view.render().$el);
+          });
+          return this;
+        }
+      });
+      var ListsView = Backbone.View.extend({
+        tagName: 'ul',
+        render: function() {
+          var $el = this.$el;
+          $el.html('');
+          this.collection.each(function(list) {
+            var view = new ListView({model: list});
+            $el.append(view.render().$el);
+          });
+          return this;
+        },
+        initialize: function() {
+          this.listenTo(this.collection, 'sync', this.render);
+        }
+      });
+      var CardView = Backbone.View.extend({
+        tagName: 'li',
+        template: function() {
+          return this.model.get('name');
+        },
+        render: function() {
+          this.$el.html(this.template());
+          return this;
+        },
+      });
+      var BoardView = Backbone.View.extend({
+        tagName: 'header',
+        render: function() {
+          this.$el.html(this.model.get('name'));
+          return this;
+        },
+        initialize: function() {
+          this.listenTo(this.model, 'sync', this.render);
+        },
+      });
+      var MemberView = Backbone.View.extend({
+        tagName: 'li',
+        render: function() {
+          var avatarHash = this.model.get('avatarHash');
+          if(avatarHash) {
+            this.$el.html('<img src="https://trello-avatars.s3.amazonaws.com/' + avatarHash + '/30.png">')
+          } else {
+            this.$el.html('<span class="member-initials">' + this.model.get('initials') + '</span>');
+          }
+          return this;
+        },
+      });
+      var MembersView = Backbone.View.extend({
+        tagName: 'ul',
+        render: function() {
+          var $el = this.$el;
+          this.collection.each(function(member) {
+            var view = new MemberView({model: member});
+            $el.append(view.render().$el);
+          });
+          return this;
+        },
+        initialize: function() {
+          this.listenTo(this.model, 'sync', this.render);
+        }
+      });
+
+      var authenticationSuccess = function() {
+        console.log("Successful authentication", Trello.token());
+        var fetchData = {
+          token: Trello.token(),
+          key: KEY,
+        };
+
+        app.boardView = new BoardView({
+          model: app.board,
+          el: document.getElementsByTagName('header')[0],
         });
+        app.membersView = new MembersView({
+          collection: app.members,
+          el: document.getElementsByClassName('sidebar')[0].childNodes[3],
+        });
+        app.listsView = new ListsView({
+          collection: app.lists,
+          el: document.getElementById('lists'),
+        });
+
+        app.board.fetch({data: fetchData});
+        app.labels.fetch({data: fetchData});
+        app.members.fetch({data: fetchData});
 
         // Get lists
-        $.ajax({
-          type: 'get',
-          url: 'https://trello.com/1/boards/' + BOARD + '/lists',
-          data: {
-            token: Trello.token(),
-            key: KEY,
-          },
+        app.lists.fetch({
+          data: fetchData,
           success: function(resp) {
-            app.lists = resp;
-            app.listOrder = {};
-            var listHTML = app.lists.map(function(list, i) {
-              app.listOrder[list.id] = i;
-              return list.name;
-            });
-            document.getElementById('lists').innerHTML = '<li class="wrapper"><div class="list"><h2>'
-              + listHTML.join('</h2><ul class="cards"></ul>Add a card...</div></li><li class="wrapper"><div class="list"><h2>')
-              + '</h2><ul class="cards"></ul></div></li>';
-          },
-          error: function(resp) {
-            console.log(resp);
-          },
+            app.lists.listenTo(app.cards, 'sync', app.lists.addCards);
+          }
         });
 
-        // Get cards
-        $.ajax({
-          type: 'get',
-          url: 'https://trello.com/1/boards/' + BOARD + '/cards',
-          data: {
-            token: Trello.token(),
-            key: KEY,
-          },
-          // TODO: make sure everything goes in the right order
-          success: function(resp) {
-            var lists = document.getElementsByClassName('list');
-
-            app.cards = resp;
-            app.cardsInLists = [];
-            app.cards.forEach(function(card) {
-              var listIdx = app.listOrder[card.idList];
-              app.cardsInLists[listIdx] = app.cardsInLists[listIdx] || [];
-              app.cardsInLists[listIdx].push(card);
-            });
-
-            app.cardsInLists.forEach(function(cards, i) {
-              cards.sort(function(card1, card2) { return card1.pos - card2.pos; });
-              var domList = lists[i].childNodes[1];
-              domList.innerHTML += '<li>' + cards.map(function(card) {
-                return card.name;
-              }).join('</li><li>') + '</li>';
-            });
-
-            [].forEach.call(lists, function(domList, i) {
-              var cardCount = document.createElement('h3');
-              cardCount.innerText = app.cardsInLists[i].length + ' cards';
-              var spaceNode = document.createTextNode(' ');
-              domList.insertBefore(cardCount, domList.childNodes[1]);
-              domList.insertBefore(spaceNode, domList.childNodes[1]);
-            });
-          },
-          error: function(resp) {
-            console.log(resp);
-          },
-        });
+        app.cards.fetch({data: fetchData});
 
       };
       var authenticationFailure = function() { console.log("Failed authentication"); };
       Trello.authorize({
         type: "popup",
-        name: "Yo yo yo yo yoyoyo yo yo yo",
+        name: "Trello-Or",
         scope: {
           read: true,
           write: true },
